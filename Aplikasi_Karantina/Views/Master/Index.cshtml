@@ -1,0 +1,543 @@
+﻿@{
+    ViewBag.Title = "Halaman Master";
+}
+
+<h2 style="text-align: center">Halaman Master</h2><br/>
+
+<div class="row">
+    <div class="col-md-6">
+        <div id="grid_master_mess"></div>
+    </div>
+</div><br/><hr/><br/>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="row">
+            <div class="col-md-8">
+                <button class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">Tambah Data</button>
+            </div>
+            <div class="col-md-4">
+                <p>Selected =  Nama Mess : <span id="spn_nama_mess">-</span>  , No Kamar : <span id="spn_no_kamar">-</span></p>
+            </div>
+        </div>
+        <br /><br />
+        <div id="grid_master_kamar"></div>
+    </div>
+</div>
+
+@* Form untuk master hari libur di popup *@
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Masukan Master Kamar</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <div class="row">
+                        <label for="inputEmail3" class="col-md-4 control-label">Nama Mess</label>
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="txt_id_master_mess" />
+                        </div>
+                    </div><p></p>
+                    <div class="row">
+                        <label for="inputEmail3" class="col-md-4 control-label">No Kamar</label>
+                        <div class="col-md-8">
+                            <input type="number" class="form-control" id="txt_no_kamar" />
+                        </div>
+                    </div><p></p>
+                    <div class="row">
+                        <label for="inputEmail3" class="col-md-4 control-label">Tanggal Terakhir Dipakai</label>
+                        <div class="col-md-8">
+                            <input type="date" class="form-control" id="txt_tgl_terakhir_dipakai" />
+                        </div>
+                    </div><p></p>
+                    <div class="row">
+                        <label for="inputEmail3" class="col-md-4 control-label">Status</label>
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="txt_status" />
+                        </div>
+                    </div><p></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" onclick="simpanMasterKamar()">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+<br/>
+
+@*<select class="form-control" id="departmentsDropdown" name="departmentsDropdown"></select>*@
+<input type="hidden" id="txt_nama_mess"/><input type="hidden" id="txt_no" /><input type="hidden" id="txt_today"/>  
+
+@* Script untuk simpan data karantina *@
+<script>
+    function simpanMasterKamar() {
+        var i_cls_kamar = {
+            id_master_mess: $("#txt_id_master_mess").val(),
+            no_kamar: $("#txt_no_kamar").val(),
+            tgl_terakhir_dipakai: $("#txt_tgl_terakhir_dipakai").val(),
+            status: $("#txt_status").val()
+        }
+        $.ajax({
+            url: "/Master/TambahDataKamar",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ s_cls_kamar: i_cls_kamar }),
+            success: function (data) {
+                $("#txt_id_master_mess").val(data.id_master_mess),
+                $("#txt_no_kamar").val(data.no_kamar),
+                $("#txt_tgl_terakhir_dipakai").val(data.tgl_terakhir_dipakai),
+                $("#txt_status").val(data.status),
+                alert(data);
+                window.location.href = "../Master/Index"
+            }
+        });
+    }
+</script>
+
+<script>
+    $("#txt_id_master_mess").kendoDropDownList({
+            dataTextField: "nama_mess",
+            dataValueField: "id_master_mess",
+            optionLabel: "Pilih Nama Mess",
+            dataSource: {
+                transport: {
+                    read: {
+                        dataType: "json",
+                        url: "/Home/DropdownListMess",
+                    }
+                }
+            }
+    });
+
+    var dataver = [
+            { text: "Kosong", value: "Kosong" },
+            { text: "Terisi", value: "Terisi" }
+    ]
+
+    $("#txt_status").kendoDropDownList({
+        autoBind: false,
+        dataTextField: "text",
+        dataValueField: "value",
+        optionLabel: "Pilih Status",
+        dataSource: dataver
+    });
+</script>
+
+@* Script untuk grid master mess *@
+<script>
+    $(document).ready(function () {
+        $("#grid_master_mess").kendoGrid({
+            dataSource: {
+                batch: true,
+                transport: {
+                    read: {
+                        url: "/Master/TampilMasterMess",
+                        contentType: "application/json",
+                        type: "POST"
+                    },
+                    update: {
+                        url: "/Master/EditMasterMess",
+                        type: "POST",
+                        dataType: "json",
+                        complete: function (e) {
+                            $("#grid_master_mess").data("kendoGrid").dataSource.read();
+                        }
+                    },
+                    create: {
+                        url: "/Master/TambahMasterMess",
+                        type: "POST",
+                        dataType: "json",
+                        complete: function (e) {
+                            $("#grid_master_mess").data("kendoGrid").dataSource.read();
+                            alert(e.responseText);
+                        }
+                    },
+                    destroy: {
+                        url: "/Master/HapusMasterMess",
+                        type: "POST",
+                        dataType: "json",
+                        complete: function (e) {
+                            $("#grid_master_mess").data("kendoGrid").dataSource.read();
+                            alert(e.responseText);
+                        }
+                    },
+                    parameterMap: function (data, operation) {
+                        if (operation != "read") {
+                            var result = {};
+                            for (var i = 0; i < data.models.length; i++) {
+                                var datamodel = data.models[i];
+                                for (var member in datamodel) {
+                                    result["datamodel[" + i + "]." + member] = datamodel[member];
+                                }
+                            }
+                            return result;
+                        } else {
+                            return JSON.stringify(data)
+                        }
+                    }
+                },
+                error: function (e) {
+                    if (e.errors) {
+                        alert(e.errors);
+                        this.cancelChanges();
+                    }
+                },
+                schema: {
+                    data: "Data",
+                    total: "Total",
+                    model: {
+                        id: "id_master_mess",
+                        fields: {
+                            id_master_mess: { type: "string", editable: false },
+                            nama_mess: { type: "string", editable: true }
+                        }
+                    }
+                },
+                pageSize: 5,
+                serverPaging: true,
+                serverFiltering: true,
+                serverSorting: true
+            },
+            filterable: true,
+            sortable: true,
+            pageable: {
+                refresh: true,
+                pageSize: 5,
+                buttonCount: 10,
+                pageSizes: [5, 10, 20, 50, 100, 500]
+            },
+            editable: "inline",
+            selectable: true,
+            resizable: true,
+            groupable: false,
+            toolbar: ["create"],
+            save: function (e) {
+                var grid = $("#grid_master_mess").data("kendoGrid");
+                var selectedItem = grid.dataItem(grid.select());
+            },
+            columns: [
+              { field: "nama_mess", title: "Nama Mes", width: 50 },
+               { command: ["edit", "destroy"], title: "&nbsp;", width: 50 }
+            ]
+        });
+    });
+</script>
+
+
+@* Script untuk grid master kamar *@
+<script>
+    $(document).ready(function () {
+        $("#grid_master_kamar").kendoGrid({
+            toolbar: ["excel"],
+            excel: {
+                fileName: "Data Master Kamar.xlsx"
+            },
+            dataSource: {
+                batch: true,
+                transport: {
+                    read: {
+                        url: "/Master/TampilMasterKamar",
+                        contentType: "application/json",
+                        type: "POST"
+                    },
+                    update: {
+                        url: "/Master/EditMasterKamar",
+                        type: "POST",
+                        dataType: "json",
+                        complete: function (e) {
+                            $("#grid_master_kamar").data("kendoGrid").dataSource.read();
+                        }
+                    },
+                    create: {
+                        url: "/Master/TambahMasterKamar",
+                        type: "POST",
+                        dataType: "json",
+                        complete: function (e) {
+                            $("#grid_master_kamar").data("kendoGrid").dataSource.read();
+                            alert(e.responseText);
+                        }
+                    },
+                    destroy: {
+                        url: "/Master/HapusMasterKamar",
+                        type: "POST",
+                        dataType: "json",
+                        complete: function (e) {
+                            $("#grid_master_kamar").data("kendoGrid").dataSource.read();
+                            alert(e.responseText);
+                        }
+                    },
+                    parameterMap: function (data, operation) {
+                        if (operation != "read") {
+                            var result = {};
+                            for (var i = 0; i < data.models.length; i++) {
+                                var datamodel = data.models[i];
+                                for (var member in datamodel) {
+                                    function convert(str) {
+                                        var date = new Date(str),
+                                          mnth = ("0" + (date.getMonth() + 1)).slice(-2),
+                                          day = ("0" + date.getDate()).slice(-2);
+                                        return [date.getFullYear(), mnth, day].join("-");
+                                    }
+                                    if (member === "tgl_terakhir_dipakai") {
+                                        result["datamodel[" + i + "]." + member] = convert(datamodel[member]);
+                                    }
+                                    else {
+                                        result["datamodel[" + i + "]." + member] = datamodel[member];
+                                    }
+                                }
+                            }
+                            return result;
+                        } else {
+                            return JSON.stringify(data)
+                        }
+                    }
+                },
+                error: function (e) {
+                    if (e.errors) {
+                        alert(e.errors);
+                        this.cancelChanges();
+                    }
+                },
+                schema: {
+                    data: "Data",
+                    total: "Total",
+                    model: {
+                        id: "id_master_kamar",
+                        fields: {
+                            id_master_kamar: { type: "string", editable: false },
+                            id_master_mess: { type: "string", editable: true },
+                            nama_mess: { type: "string", editable: true },
+                            no_kamar: { type: "string", editable: true },
+                            tgl_terakhir_dipakai: { type: "date", editable: true },
+                            status: { type: "string", editable: true }
+                        }
+                    }
+                },
+                pageSize: 10,
+                group: {
+                    field: "nama_mess", aggregates: [
+                       { field: "no_kamar", aggregate: "count" },
+                       { field: "tgl_terakhir_dipakai", aggregate: "count" },
+                       { field: "status", aggregate: "count" }
+                    ]
+                },
+                serverPaging: true,
+                serverFiltering: true,
+                serverSorting: true
+            },
+            filterable: true,
+            sortable: true,
+            pageable: {
+                refresh: true,
+                pageSize: 10,
+                buttonCount: 10,
+                pageSizes: [5, 10, 20, 50, 100, 500]
+            },
+            editable: "inline",
+            selectable: true,
+            resizable: true,
+            groupable: false,
+            //toolbar: ["create"],
+            save: function (e) {
+                var grid = $("#grid_master_kamar").data("kendoGrid");
+                var selectedItem = grid.dataItem(grid.select());
+            },
+            columns: [
+              { field: "nama_mess", title: "Nama Mes", editor: NamaMess, width: 50 },
+              { field: "no_kamar", title: "No Kamar", width: 50 },
+              { field: "tgl_terakhir_dipakai", title: "Tanggal Terakhir Dipakai", editor: ComboTanggalTerakhir, template: '#= (tgl_terakhir_dipakai == null) ? " - " : kendo.toString(kendo.parseDate(tgl_terakhir_dipakai,"yyyy-MM-dd"),"dd MMMM yyyy") #', width: 50 },
+              { field: "status", title: "Status", editor: StatusDropDownEditor, width: 50 },
+              { command: ["edit", "destroy"], title: "&nbsp;", width: 50 }
+            ],
+            edit: function (e) {
+                var data = $("#grid_master_kamar").data("kendoGrid").dataItem($(e.container).closest("tr"));
+                var nama_mess = data.nama_mess;
+                var no_kamar = data.no_kamar;
+
+                $("#txt_nama_mess").val(nama_mess);
+                $("#txt_no").val(no_kamar);
+
+                $("#spn_nama_mess").text(nama_mess);
+                $("#spn_no_kamar").text(no_kamar);
+
+            },
+            change: function (e) {
+                var rows = e.sender.select();
+                rows.each(function (e) {
+                    var grid = $("#grid_master_kamar").data("kendoGrid");
+                    var dataItem = grid.dataItem(this);
+
+                    var mess = dataItem.nama_mess;
+                    var no = dataItem.no_kamar;
+
+                    $("#txt_nama_mess").val(mess);
+                    $("#txt_no").val(no);
+
+                    $("#spn_nama_mess").text(mess);
+                    $("#spn_no_kamar").text(no);
+                })
+            }
+        });
+
+        function ComboTanggalTerakhir(container, options) {
+            $('<input name="' + options.field + '"></select>')
+                .appendTo(container)
+                .kendoDropDownList({
+                    dataTextField: "tanggal_akhir",
+                    dataValueField: "tanggal_akhir",
+                    optionLabel: "Pilih Tanggal Akhir",
+                    valueTemplate: '#: convertDate(data.tanggal_akhir) #',
+                    template: '#: convertDate(data.tanggal_akhir) #',
+                    dataSource: {
+                        transport: {
+                            read: {
+                                dataType: "json",
+                                url: "/Home/DropdownListTanggal",
+                                data: {
+                                    nama_mess: $("#txt_nama_mess").val(),
+                                    no_kamar: $("#txt_no").val(),
+                                    tanggal_hari_ini: $("#txt_today").val()
+                                }
+                            }
+                        }
+                    }
+                });
+        }
+    });
+    
+    var dataStatus = [
+           { text: "Kosong", value: "Kosong" },
+           { text: "Terisi", value: "Terisi" }
+    ]
+
+    function StatusDropDownEditor(container, options) {
+        $('<input required name="' + options.field + '"/>')
+            .appendTo(container)
+            .kendoDropDownList({
+                autoBind: false,
+                dataTextField: "text",
+                dataValueField: "value",
+                optionLabel: "Pilih Status",
+                dataSource: dataStatus
+            });
+    }
+
+    function NamaMess(container, options) {
+        $('<input required name="' + options.field + '"/>')
+            .appendTo(container)
+            .kendoDropDownList({
+                autoBind: false,
+                dataTextField: "nama_mess",
+                dataValueField: "id_master_mess",
+                optionLabel: "Pilih Nama Mess",
+                dataSource: {
+                    transport: {
+                        read: {
+                            dataType: "json",
+                            url: "/Home/DropdownListMess",
+                        }
+                    }
+                }
+        });
+    }
+
+    function TanggalTerakhirDipakai(container, options) {
+        $('<input id="datepicker" name="' + options.field + '"/>')
+            .appendTo(container)
+            .kendoDatePicker({
+                format: "yyyy-MM-dd",
+                change: dateChange,
+                parseFormats: ["yyyy-MM-dd"]
+            });
+    }
+
+    function convertDate(e) {
+        var dateString = e.substr(6);
+        var currentTime = new Date(parseInt(dateString));
+        var month = ('0' + (currentTime.getMonth() + 1)).slice(-2);
+        var day = ('0' + (currentTime.getDate())).slice(-2);
+        var year = currentTime.getFullYear();
+        var date = year + "-" + month + "-" + day;
+        return date;
+    }
+</script>
+
+@* Script untuk update status kamar jika tanggal sudah terlewati *@
+<script>
+    $(document).ready(function () {
+        $.ajax({
+            url: "/Home/UpdateStatusKamar",
+            type: "POST",
+            contentType: "application/json",
+            success: function (data) {
+                console.log("Status Kamar Berhasil diperbaharui");
+            },
+            error: function (err) {
+                alert(err);
+            }
+        });
+    });
+
+    function dateChange() {
+        var datepicker = $("#datepicker").data("kendoDatePicker");
+        if (datepicker.value() === '') {
+            datepicker.value(null);
+            datepicker.trigger("change");
+        }
+    }
+</script>
+
+<script>
+    $(document).ready(function () {
+        function convertDate(e) {
+            var dateString = e.substr(6);
+            var currentTime = new Date(parseInt(dateString));
+            var month = ('0' + (currentTime.getMonth() + 1)).slice(-2);
+            var day = ('0' + (currentTime.getDate())).slice(-2);
+            var year = currentTime.getFullYear();
+            var date = year + "-" + month + "-" + day;
+            return date;
+        }
+
+        $.ajax({
+            type: "GET",
+            url: "/Home/DropdownListTanggal",
+            data: "{}",
+            success: function (data) {
+                var s = '<option value="-1">Please Select a Tanggal</option>';
+                for (var i = 0; i < data.length; i++) {
+                    s += '<option value="' + convertDate(data[i].tanggal_akhir) + '">' + convertDate(data[i].tanggal_akhir) + '</option>';
+                }
+                $("#departmentsDropdown").html(s);
+            }
+        });
+    });
+</script>
+
+@* Script untuk mengambil tanggal hari ini *@
+<script>
+    $(document).ready(function () {
+        var today = new Date();
+        var dd = today.getDate();
+
+        var mm = today.getMonth() + 1;
+        var yyyy = today.getFullYear();
+        if (dd < 10) {
+            dd = '0' + dd;
+        }
+
+        if (mm < 10) {
+            mm = '0' + mm;
+        }
+
+        var tanggal_hari_ini = yyyy + '-' + mm + '-' + dd;
+        $("#txt_today").val(tanggal_hari_ini);
+    });
+</script>
+

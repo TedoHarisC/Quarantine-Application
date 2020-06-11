@@ -1,0 +1,316 @@
+﻿@{
+    ViewBag.Title = "Aplikasi Karantina";
+}
+
+<br/>
+<h2 style="text-align: center">Data Karantina</h2><p></p>
+<button class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">Tambah Data</button><br /><br />
+<div id="grid_data_karantina"></div>
+
+@* Form untuk master hari libur di popup *@
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Masukan Data Karantina</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <div class="row">
+                        <label for="inputEmail3" class="col-md-4 control-label">Nama</label>
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="txt_nama"/>
+                        </div>
+                    </div><p></p>
+                    <div class="row">
+                        <label for="inputEmail3" class="col-md-4 control-label">Tanggal Mulai</label>
+                        <div class="col-md-8">
+                            <input type="date" class="form-control" id="txt_tanggal_mulai" onchange="setTanggalAkhir(); setNomorKamar()"/>
+                        </div>
+                    </div><p></p>
+                    <div class="row">
+                        <label for="inputEmail3" class="col-md-4 control-label">Tanggal Akhir</label>
+                        <div class="col-md-8">
+                            <input type="date" class="form-control" id="txt_tanggal_akhir"/>
+                        </div>
+                    </div><p></p>
+                    <div class="row">
+                        <label for="inputEmail3" class="col-md-4 control-label">Nama Mess</label>
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="txt_nama_mess" onchange="setNomorKamar()"/>
+                        </div>
+                    </div><p></p>
+                    <div class="row">
+                        <label for="inputEmail3" class="col-md-4 control-label">No Kamar</label>
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="txt_no_kamar" />
+                        </div>
+                    </div><p></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" onclick="simpanDataKarantina()">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Script untuk simpan data karantina *@
+<script>
+    function simpanDataKarantina() {
+        var i_cls_data_karantina = {
+            nama: $("#txt_nama").val(),
+            tanggal_mulai: $("#txt_tanggal_mulai").val(),
+            tanggal_akhir: $("#txt_tanggal_akhir").val(),
+            nama_mess: $("#txt_nama_mess").val(),
+            no_kamar: $("#txt_no_kamar").val()
+        }
+        $.ajax({
+            url: "/Home/TambahMasterKarantina",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ s_cls_data_karantina: i_cls_data_karantina }),
+            success: function (data) {
+                $("#txt_nama").val(data.nama),
+                $("#txt_tanggal_mulai").val(data.tanggal_mulai),
+                $("#txt_tanggal_akhir").val(data.tanggal_akhir),
+                $("#txt_nama_mess").val(data.nama_mess),
+                $("#txt_no_kamar").val(data.no_kamar),
+                alert(data);
+                window.location.href = "../Home/Index"
+            }
+        });
+    }
+</script>
+
+@* Script untuk grid golongan *@
+<script>
+    $(document).ready(function () {
+        $("#grid_data_karantina").kendoGrid({
+            toolbar: ["excel"],
+            excel: {
+                fileName: "Data Karantina.xlsx"
+            },
+            dataSource: {
+                batch: true,
+                transport: {
+                    read: {
+                        url: "/Home/TampilDataKarantina",
+                        contentType: "application/json",
+                        type: "POST"
+                    },
+                    update: {
+                        url: "/Home/EditDataKarantina",
+                        type: "POST",
+                        dataType: "json",
+                        complete: function (e) {
+                            $("#grid_data_karantina").data("kendoGrid").dataSource.read();
+                        }
+                    },
+                    create: {
+                        url: "/Home/TambahDataKarantina",
+                        type: "POST",
+                        dataType: "json",
+                        complete: function (e) {
+                            $("#grid_data_karantina").data("kendoGrid").dataSource.read();
+                            alert(e.responseText);
+                        }
+                    },
+                    destroy: {
+                        url: "/Home/HapusDataKarantina",
+                        type: "POST",
+                        dataType: "json",
+                        complete: function (e) {
+                            $("#grid_data_karantina").data("kendoGrid").dataSource.read();
+                            alert(e.responseText);
+                        }
+                    },
+                    parameterMap: function (data, operation) {
+                        if (operation != "read") {
+                            var result = {};
+                            for (var i = 0; i < data.models.length; i++) {
+                                var datamodel = data.models[i];
+                                for (var member in datamodel) {
+
+                                    function convert(str) {
+                                        var date = new Date(str),
+                                          mnth = ("0" + (date.getMonth() + 1)).slice(-2),
+                                          day = ("0" + date.getDate()).slice(-2);
+                                        return [date.getFullYear(), mnth, day].join("-");
+                                    }
+                                    if (member === "tanggal_akhir" || member === "tanggal_mulai") {
+                                        result["datamodel[" + i + "]." + member] = convert(datamodel[member]);
+                                    }
+                                    else {
+                                        result["datamodel[" + i + "]." + member] = datamodel[member];
+                                    }
+                                }
+                            }
+                            return result;
+                        } else {
+                            return JSON.stringify(data)
+                        }
+                    }
+                },
+                error: function (e) {
+                    if (e.errors) {
+                        alert(e.errors);
+                        this.cancelChanges();
+                    }
+                },
+                schema: {
+                    data: "Data",
+                    total: "Total",
+                    model: {
+                        id: "id_data_karantina",
+                        fields: {
+                            id_data_karantina: { type: "string", editable: false },
+                            nama: { type: "string", editable: true },
+                            tanggal_mulai: { type: "date", format: "{0:yyyy-MM-dd}", editable: false },
+                            tanggal_akhir: { type: "date", format: "{0:yyyy-MM-dd}", editable: true },
+                            nama_mess: { type: "string", editable: true },
+                            no_kamar: { type: "number", editable: true }
+                        }
+                    }
+                },
+                pageSize: 5,
+                serverPaging: true,
+                serverFiltering: true,
+                serverSorting: true
+            },
+            filterable: true,
+            sortable: true,
+            pageable: {
+                refresh: true,
+                pageSize: 5,
+                buttonCount: 10,
+                pageSizes: [5, 10, 20, 50, 100, 500]
+            },
+            editable: "inline",
+            selectable: true,
+            resizable: true,
+            groupable: false,
+            //toolbar: ["create"],
+            save: function (e) {
+                var grid = $("#grid_data_karantina").data("kendoGrid");
+                var selectedItem = grid.dataItem(grid.select());
+            },
+            columns: [
+              { field: "nama", title: "Nama", width: 60 },
+              { field: "tanggal_mulai", title: "Tanggal Mulai", editor: TanggalMulai, template: '#=kendo.toString(kendo.parseDate(tanggal_mulai,"yyyy-MM-dd"),"dd MMMM yyyy") #', width: 40 },
+              { field: "tanggal_akhir", title: "Tanggal Akhir", editor: TanggalAkhir, template: '#=kendo.toString(kendo.parseDate(tanggal_akhir,"yyyy-MM-dd"),"dd MMMM yyyy") #', width: 40 },
+              { field: "nama_mess", title: "Nama Mes", width: 40 },
+              { field: "no_kamar", title: "Nomor Kamar", width: 40 },
+              { command: ["destroy"], title: "&nbsp;", width: 50 }
+            ]
+        });
+    });
+
+    function TanggalMulai(container, options) {
+        $('<input required name="' + options.field + '"/>')
+            .appendTo(container)
+            .kendoMaskedTextBox({
+                mask: "0000-00-00"
+            });
+    }
+
+    function TanggalAkhir(container, options) {
+        $('<input required name="' + options.field + '"/>')
+            .appendTo(container)
+            .kendoDatePicker({
+                format: "yyyy-MM-dd",
+                parseFormats: ["yyyy-MM-dd"]
+            });
+    }
+</script>
+
+@* Function untuk set tanggal akhir *@
+<script>
+    function setTanggalAkhir() {
+
+        function convert(str) {
+            var date = new Date(str),
+              mnth = ("0" + (date.getMonth() + 1)).slice(-2),
+              day = ("0" + date.getDate()).slice(-2);
+            return [date.getFullYear(), mnth, day].join("-");
+        }
+
+        let tanggalAkhir = new Date($("#txt_tanggal_mulai").val());
+        tanggalAkhir.setDate(tanggalAkhir.getDate() + 15);
+
+        $("#txt_tanggal_akhir").val(convert(tanggalAkhir));
+    }
+</script>
+
+@* Function untuk membuat combobox *@
+<script>
+    $(document).ready(function () {
+        $("#txt_nama_mess").kendoDropDownList({
+            dataTextField: "nama_mess",
+            dataValueField: "nama_mess",
+            optionLabel: "Pilih Nama Mess",
+            dataSource: {
+                transport: {
+                    read: {
+                        dataType: "json",
+                        url: "/Home/DropdownListMess",
+                    }
+                }
+            }
+        });
+
+        $("#txt_no_kamar").kendoDropDownList({
+            dataTextField: "no_kamar",
+            dataValueField: "no_kamar",
+            optionLabel: "Pilih Nomor Kamar",
+            //dataSource: {
+            //    transport: {
+            //        read: {
+            //            dataType: "json",
+            //            url: "/Home/DropdownListKamar/?nama_mess=" + $("#txt_nama_mess").val(),
+            //        }
+            //    }
+            //}
+        });
+    });
+
+    function setNomorKamar() {
+        $("#txt_no_kamar").kendoDropDownList({
+            dataTextField: "no_kamar",
+            dataValueField: "no_kamar",
+            optionLabel: "Pilih Nomor Kamar",
+            dataSource: {
+                transport: {
+                    read: {
+                        dataType: "json",
+                        url: "/Home/DropdownListKamar/?nama_mess=" + $("#txt_nama_mess").val(),
+                        data: {
+                            tanggal_mulai: $("#txt_tanggal_mulai").val()
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+@* Script untuk update status kamar jika tanggal sudah terlewati *@
+<script>
+    $(document).ready(function () {
+        $.ajax({
+            url: "/Home/UpdateStatusKamar",
+            type: "POST",
+            contentType: "application/json",
+            success: function (data) {
+                console.log("Status Kamar Berhasil diperbaharui");
+            },
+            error: function (err) {
+                alert(err);
+            }
+        });
+    });
+</script>
+
